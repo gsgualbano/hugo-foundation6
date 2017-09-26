@@ -12,6 +12,37 @@ import fs            from 'fs';
 import webpackStream from 'webpack-stream';
 import webpack2      from 'webpack';
 import named         from 'vinyl-named';
+//Import Hugo
+import {spawn} from "child_process";
+import hugoBin from "hugo-bin";
+
+// Hugo arguments
+const hugoArgsDefault = ["-d", "../dist", "-s", "site", "-v"];
+const hugoArgsPreview = ["--buildDrafts", "--buildFuture"];
+
+// Development tasks
+gulp.task("hugo", (cb) => buildSite(cb));
+gulp.task("hugo-preview", (cb) => buildSite(cb, hugoArgsPreview));
+
+/**
+ * Run hugo and build the site
+ */
+function buildSite(cb, options, environment = "development") {
+  const args = options ? hugoArgsDefault.concat(options) : hugoArgsDefault;
+
+  process.env.NODE_ENV = environment;
+
+  return spawn(hugoBin, args, {stdio: "inherit"}).on("close", (code) => {
+    if (code === 0) {
+      browser.reload();
+      cb();
+    } else {
+      browser.notify("Hugo build failed :(");
+      cb("Hugo build failed");
+    }
+  });
+}
+
 
 // Load all Gulp plugins into one variable
 const $ = plugins();
@@ -29,7 +60,7 @@ function loadConfig() {
 
 // Build the "dist" folder by running all of the below tasks
 gulp.task('build',
- gulp.series(clean, gulp.parallel(pages, sass, javascript, images, copy), styleGuide));
+ gulp.series(clean, gulp.parallel(buildSite, sass, javascript, images, copy)));
 
 // Build the site, run the server, and watch for file changes
 gulp.task('default',
@@ -48,32 +79,6 @@ function copy() {
     .pipe(gulp.dest(PATHS.dist + '/assets'));
 }
 
-// Copy page templates into finished HTML files
-function pages() {
-  return gulp.src('src/pages/**/*.{html,hbs,handlebars}')
-    .pipe(panini({
-      root: 'src/pages/',
-      layouts: 'src/layouts/',
-      partials: 'src/partials/',
-      data: 'src/data/',
-      helpers: 'src/helpers/'
-    }))
-    .pipe(gulp.dest(PATHS.dist));
-}
-
-// Load updated HTML templates and partials into Panini
-function resetPages(done) {
-  panini.refresh();
-  done();
-}
-
-// Generate a style guide from the Markdown content and HTML template in styleguide/
-function styleGuide(done) {
-  sherpa('src/styleguide/index.md', {
-    output: PATHS.dist + '/styleguide.html',
-    template: 'src/styleguide/template.html'
-  }, done);
-}
 
 // Compile Sass into CSS
 // In production, the CSS is compressed
@@ -147,13 +152,11 @@ function reload(done) {
   done();
 }
 
-// Watch for changes to static assets, pages, Sass, and JavaScript
+// Watch for changes to static assets, buildSite, Sass, and JavaScript
 function watch() {
   gulp.watch(PATHS.assets, copy);
-  gulp.watch('src/pages/**/*.html').on('all', gulp.series(pages, browser.reload));
-  gulp.watch('src/{layouts,partials}/**/*.html').on('all', gulp.series(resetPages, pages, browser.reload));
+  gulp.watch('./site/**/*').on('all', gulp.series(buildSite, browser.reload));
   gulp.watch('src/assets/scss/**/*.scss').on('all', sass);
   gulp.watch('src/assets/js/**/*.js').on('all', gulp.series(javascript, browser.reload));
   gulp.watch('src/assets/img/**/*').on('all', gulp.series(images, browser.reload));
-  gulp.watch('src/styleguide/**').on('all', gulp.series(styleGuide, browser.reload));
 }
