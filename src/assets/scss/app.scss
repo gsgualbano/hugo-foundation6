@@ -1,8 +1,12 @@
 @charset 'utf-8';
 
+//Add font SF Pro
+
+@import 'sf-pro';
+
 @import 'settings';
 @import 'foundation';
-@import 'motion-ui';
+
 
 @include foundation-global-styles;
 // @include foundation-grid;
@@ -49,5 +53,4 @@
 
 // @include foundation-prototype-classes;
 
-@include motion-ui-transitions;
-@include motion-ui-animations;
+
