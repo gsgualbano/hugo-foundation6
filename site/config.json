@@ -1,0 +1,12 @@
+{
+  "baseurl": "/",
+  "languageCode": "en-us",
+  "languageLang": "en",
+  "title": "My new Victor-Hugo site",
+  "uglyurls": true,
+  "disableKinds": [
+    "RSS",
+    "taxonomy",
+    "taxonomyTerm"
+  ]
+}
